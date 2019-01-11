@@ -7,6 +7,8 @@ use AnyEvent::Util;
 use Socket;
 use Socket6;
 
+use constant RTP_TIMEOUT_SEC => 10;
+
 has 'mount' => (
     is => 'ro',
     isa => 'RTSP::Server::Mount',
@@ -52,6 +54,18 @@ has 'socket' => (
     is => 'rw',
 );
 
+has 'connection' => (
+    is => 'rw',
+);
+
+has 'timer' => (
+    is => 'rw',
+);
+
+has 'idle' => (
+    is => 'rw',
+);
+
 sub listen {
     my ($self) = @_;
 
@@ -89,12 +103,28 @@ sub listen {
                 $self->clear_watcher;
                 return;
             }
+            if ($buf) {
+                $self->idle(0);
+            }
 
             next unless $buf;
 
             $self->stream->broadcast($buf);
         }
     );
+
+    $self->idle(0);
+    my $timeout = AnyEvent->timer (interval => 1, cb => sub {
+        $self->idle($self->idle + 1);
+        if($self->idle > RTP_TIMEOUT_SEC) {
+            my $mount = $self->mount->path;
+            warn("Timeout reached for $mount");
+            $self->connection->unmount($mount);
+            $self->connection->end_rtp_server;
+            return;
+        }
+    });
+    $self->timer($timeout);
 
     $self->watcher($w);
 
@@ -112,6 +142,7 @@ sub close {
     if ($self->socket) {
         shutdown $self->socket, 2;
     }
+    $self->timer(undef);
 }
 
 sub DEMOLISH {

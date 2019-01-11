@@ -60,6 +60,7 @@ sub start_rtp_server {
                 host => $self->local_address,
                 addr_family => $self->addr_family,
                 port => $port,
+                connection => $self,
             );
 
             push @{ $self->rtp_listeners }, $listener;
