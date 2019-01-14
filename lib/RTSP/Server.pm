@@ -32,6 +32,15 @@ has 'source_listen_port' => (
     metaclass => 'MooseX::Getopt::Meta::Attribute',
 );
 
+has 'rtp_timeout' => (
+    is => 'rw',
+    isa => 'Int',
+    default => '10',
+    cmd_flag => 'rtp_timeout',
+    cmd_aliases => 't',
+    metaclass => 'MooseX::Getopt::Meta::Attribute',
+);
+
 has 'client_listen_address' => (
     is => 'rw',
     isa => 'Str',
