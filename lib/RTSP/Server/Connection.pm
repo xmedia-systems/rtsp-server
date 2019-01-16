@@ -118,8 +118,12 @@ sub teardown {
 }
 
 sub describe {
-    my ($self) = @_;
+    my ($self, $path) = @_;
 
+    $path ||= $self->get_mount_path or return $self->not_found;
+    if ($path eq "/") {
+        return $self->list_mounts;
+    }
     my $mount = $self->get_mount
         or return $self->not_found;
 
@@ -145,6 +149,17 @@ sub bad_request {
     my ($self) = @_;
     $self->push_response(400, "Bad Request");
 }
+
+sub list_mounts {
+    my ($self) = @_;
+    
+    my @mounts = keys %{$self->mounts};
+    my ($resp) = join("\n", map { "$_" } @mounts);
+    
+
+    $self->push_response(200, "List", "$resp");
+}
+
 
 sub not_found {
     my ($self) = @_;
