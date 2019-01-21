@@ -97,6 +97,13 @@ sub setup {
         return $self->bad_request;
     }
 
+    # parse destination out of transport header or use client address 
+    my ($destination) =
+        $transport =~ m/destination=([\w\.]+)/smi;
+    unless($destination) {
+        $destination = $self->client_address;
+    }
+
     # register client with stream
     my $stream = $mount->get_stream($stream_id)
         or return $self->not_found;
@@ -110,10 +117,10 @@ sub setup {
     my ($local, $dest);
     if ($self->addr_family == AF_INET) {
         $local = sockaddr_in($local_port, Socket::inet_aton($self->local_address));
-        $dest = sockaddr_in($client_rtp_start_port, Socket::inet_aton($self->client_address));
+        $dest = sockaddr_in($client_rtp_start_port, Socket::inet_aton($destination));
     } elsif ($self->addr_family == AF_INET6) {
         $local = sockaddr_in6($local_port, Socket6::inet_pton(AF_INET6, $self->local_address));
-        $dest = sockaddr_in6($client_rtp_start_port, Socket6::inet_pton(AF_INET6, $self->client_address));
+        $dest = sockaddr_in6($client_rtp_start_port, Socket6::inet_pton(AF_INET6, $destination));
     }
     bind $sock, $local;
     unless (connect $sock, $dest) {
@@ -129,10 +136,10 @@ sub setup {
     AnyEvent::Util::fh_nonblocking $sock_rtcp, 1;
     if ($self->addr_family == AF_INET) {
         $local = sockaddr_in($local_port + 1, Socket::inet_aton($self->local_address));
-        $dest = sockaddr_in($client_rtp_end_port, Socket::inet_aton($self->client_address));
+        $dest = sockaddr_in($client_rtp_end_port, Socket::inet_aton($destination));
     } elsif ($self->addr_family == AF_INET6) {
         $local = sockaddr_in6($local_port + 1, Socket6::inet_pton(AF_INET6, $self->local_address));
-        $dest = sockaddr_in6($client_rtp_end_port, Socket6::inet_pton(AF_INET6, $self->client_address));
+        $dest = sockaddr_in6($client_rtp_end_port, Socket6::inet_pton(AF_INET6, $destination));
     }
     bind $sock_rtcp, $local;
     unless (connect $sock_rtcp, $dest) {
